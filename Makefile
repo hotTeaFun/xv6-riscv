@@ -18,6 +18,7 @@ OBJS = \
   $K/trap.o \
   $K/syscall.o \
   $K/sysproc.o \
+  $K/sysmem.o \
   $K/bio.o \
   $K/fs.o \
   $K/log.o \
@@ -131,6 +132,7 @@ UPROGS=\
 	$U/_usertests\
 	$U/_grind\
 	$U/_wc\
+	$U/_meminfo\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)
