@@ -1,4 +1,5 @@
 struct stat;
+struct sysinfo;
 
 // system calls
 int fork(void);
@@ -22,7 +23,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-uint64 meminfo(void);
+int sysinfo(struct sysinfo*);
+int trace(uint64);
 
 
 // ulib.c
@@ -39,5 +41,6 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+uint64 atoul(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);

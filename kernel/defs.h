@@ -107,6 +107,7 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+uint64 getactiveprocnum(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -133,8 +134,10 @@ char*           safestrcpy(char*, const char*, int);
 int             strlen(const char*);
 int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
-
+int             isdigit(const char c);
+int             stoi(const char *s);
 // syscall.c
+void            arguint64(int, uint64*);
 void            argint(int, int*);
 int             argstr(int, char*, int);
 void            argaddr(int, uint64 *);

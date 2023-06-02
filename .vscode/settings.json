@@ -3,6 +3,7 @@
         "memlayout.h": "c",
         "proc.h": "c",
         "types.h": "c",
-        "user.h": "c"
+        "user.h": "c",
+        "defs.h": "c"
     }
 }

@@ -50,6 +50,22 @@ printint(int xx, int base, int sign)
 }
 
 static void
+printuint64(uint64 xx, int base)
+{
+  char buf[64];
+  int i;
+  uint64 x;
+  x = xx;
+  i = 0;
+  do {
+    buf[i++] = digits[x % base];
+  } while((x /= base) != 0);
+
+  while(--i >= 0)
+    consputc(buf[i]);
+}
+
+static void
 printptr(uint64 x)
 {
   int i;
@@ -59,7 +75,7 @@ printptr(uint64 x)
     consputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
 }
 
-// Print to the console. only understands %d, %x, %p, %s.
+// Print to the console. only understands %d, %l, %x, %p, %s.
 void
 printf(char *fmt, ...)
 {
@@ -86,6 +102,9 @@ printf(char *fmt, ...)
     switch(c){
     case 'd':
       printint(va_arg(ap, int), 10, 1);
+      break;
+    case 'l':
+      printuint64(va_arg(ap, uint64), 10);
       break;
     case 'x':
       printint(va_arg(ap, int), 16, 1);

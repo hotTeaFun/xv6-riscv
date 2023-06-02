@@ -12,6 +12,9 @@ struct proc proc[NPROC];
 
 struct proc *initproc;
 
+uint64 usedprocnum;
+struct spinlock procnum_lock;
+
 int nextpid = 1;
 struct spinlock pid_lock;
 
@@ -50,7 +53,9 @@ procinit(void)
   struct proc *p;
   
   initlock(&pid_lock, "nextpid");
+  initlock(&procnum_lock, "procnum_lock");
   initlock(&wait_lock, "wait_lock");
+  usedprocnum = 0;
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -102,6 +107,23 @@ allocpid()
   return pid;
 }
 
+void
+updateactiveprocnum(int delta)
+{
+  acquire(&procnum_lock);
+  usedprocnum += delta;
+  release(&procnum_lock);
+}
+
+uint64
+getactiveprocnum(void){
+  uint64 ret;
+  acquire(&procnum_lock);
+  ret = usedprocnum;
+  release(&procnum_lock);
+
+  return ret;
+}
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -123,6 +145,7 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
+  updateactiveprocnum(1);
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -149,6 +172,10 @@ found:
   return p;
 }
 
+uint64 getusedproc(void){
+  return usedprocnum;
+}
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
@@ -168,6 +195,9 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  if(p->state != UNUSED){
+    updateactiveprocnum(-1);
+  }
   p->state = UNUSED;
 }
 
@@ -282,7 +312,10 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
-
+  uint64 pmask;
+  acquire(&p->lock);
+  pmask = p->tracemask;
+  release(&p->lock); 
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -319,6 +352,7 @@ fork(void)
   release(&wait_lock);
 
   acquire(&np->lock);
+  np->tracemask = pmask;
   np->state = RUNNABLE;
   release(&np->lock);
 
