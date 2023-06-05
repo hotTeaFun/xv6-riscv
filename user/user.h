@@ -26,6 +26,7 @@ int uptime(void);
 int sysinfo(struct sysinfo*);
 int trace(uint64);
 
+int ugetpid(void);
 
 // ulib.c
 int stat(const char*, struct stat*);
