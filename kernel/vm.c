@@ -450,7 +450,7 @@ void pteprint(pagetable_t pt,int index, int depth){
       printf(" ");
     }
   }
-  printf("%d: %p(pte addr) %p(pte) %p(flags) %p(pa)\n",index,&pt[index],pt[index],PTE_FLAGS(pte),PTE2PA(pte));
+  printf("%d: %p(pte addr) %p(pte) %p(flags) %p(pa)\n",index,&pt[index],pte,PTE_FLAGS(pte),PTE2PA(pte));
 }
 void do_vmprint(pagetable_t pt,int depth){
   for(int i =0;i<512;i++){
