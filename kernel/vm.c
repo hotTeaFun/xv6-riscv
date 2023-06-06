@@ -437,3 +437,29 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+void vmprint(pagetable_t pt){
+  printf("page table %p\n",pt);
+  do_vmprint(pt,0);
+}
+void pteprint(pagetable_t pt,int index, int depth){
+  pte_t pte=pt[index];
+  for(int i=0;i<depth;i++){
+    printf("..");
+    if(i!=depth-1){
+      printf(" ");
+    }
+  }
+  printf("%d: %p(pte addr) %p(pte) %p(flags) %p(pa)\n",index,&pt[index],pt[index],PTE_FLAGS(pte),PTE2PA(pte));
+}
+void do_vmprint(pagetable_t pt,int depth){
+  for(int i =0;i<512;i++){
+    pte_t pte =pt[i];
+    if(pte & PTE_V){
+        pteprint(pt,i,depth+1);
+        if(depth<2){
+          do_vmprint((pagetable_t)PTE2PA(pte),depth+1);
+        }
+    }
+  }
+}

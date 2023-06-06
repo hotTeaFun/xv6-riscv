@@ -25,7 +25,6 @@ int sleep(int);
 int uptime(void);
 int sysinfo(struct sysinfo*);
 int trace(uint64);
-
 int ugetpid(void);
 
 // ulib.c
