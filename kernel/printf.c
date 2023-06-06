@@ -156,12 +156,12 @@ printfinit(void)
 void backtrace(void){
   uint64 fp,base;
   uint64 addr;
-  fp = r_fp();
+  fp = *(uint64*)r_fp();
   base = PGROUNDUP(fp);
   printf("backtrace:\n");
   while(fp<base){
-    addr = *((uint64*)(fp+8));
+    addr = *((uint64*)(fp-8));
     printf("%p\n",addr);
-    fp = *((uint64*)(fp+16));
+    fp = *((uint64*)(fp-16));
   }
 }

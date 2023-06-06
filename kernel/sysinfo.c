@@ -5,7 +5,6 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-
 uint64 sys_sysinfo(void){
   struct proc *p = myproc();
   struct sysinfo info;

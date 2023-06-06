@@ -1,5 +1,6 @@
 #include "kernel/types.h"
 #include "kernel/riscv.h"
+#include "kernel/defs.h"
 #include "kernel/memlayout.h"
 int ugetpid(void) {
   struct usyscall* roregion = (struct usyscall*)USYSCALL;
