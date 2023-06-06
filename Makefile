@@ -138,6 +138,7 @@ UPROGS=\
 	$U/_usyscalltest\
 	$U/_trace\
 	$U/_pgatest\
+	$U/_bttest\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)
