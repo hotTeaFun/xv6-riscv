@@ -22,7 +22,7 @@ extern void forkret(void);
 static void freeproc(struct proc *p);
 
 extern char trampoline[];  // trampoline.S
-
+char alarmtrapframe[512];
 // helps ensure that wakeups of wait()ing
 // parents are not lost. helps obey the
 // memory model when using p->parent.

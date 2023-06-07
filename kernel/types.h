@@ -14,7 +14,7 @@ typedef uint64 pde_t;
 struct sysinfo
 {
     uint64 nproc;
-    uint64 nmem;
+    uint64 freemem;
 };
 
 

@@ -136,3 +136,22 @@ uint64 sys_pgaccess(void) {
   }
   return 0;
 }
+
+uint64 sys_sigalarm(void){
+  struct proc* p=myproc();
+  argint(0,&p->totticks);
+  if(p->totticks < 0){
+    printf("sigalarm invalid interval: %d",p->totticks);
+    return -1;
+  }
+  p->ticks = p->totticks;
+  argaddr(1,&p->alarmhandler);
+  return 0;
+}
+extern char alarmtrapframe[512];
+uint64 sys_sigreturn(void){
+  struct proc* p=myproc();
+  memmove(p->trapframe,alarmtrapframe,512);
+  p->ticks = p->totticks;
+  return 0;
+}

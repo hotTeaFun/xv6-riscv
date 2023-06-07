@@ -9,8 +9,8 @@ uint64 sys_sysinfo(void){
   struct proc *p = myproc();
   struct sysinfo info;
   info.nproc = getactiveprocnum();
-  info.nmem = kgetfree();
-  if(info.nproc < 0||info.nmem < 0){
+  info.freemem = kgetfree();
+  if(info.nproc < 0||info.freemem < 0){
     return -1;
   }
   uint64 addr;

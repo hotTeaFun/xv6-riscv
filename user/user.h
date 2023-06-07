@@ -27,6 +27,8 @@ int sysinfo(struct sysinfo*);
 int trace(uint64);
 int ugetpid(void);
 int pgaccess(void*,int,uint64*);
+int sigalarm(int,void(*)());
+int sigreturn(void);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
