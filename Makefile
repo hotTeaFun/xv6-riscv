@@ -140,6 +140,7 @@ UPROGS=\
 	$U/_pgatest\
 	$U/_bttest\
 	$U/_alarmtest\
+	$U/_cowtest\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)
