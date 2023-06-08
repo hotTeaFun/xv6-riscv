@@ -15,6 +15,8 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
+int docow(pagetable_t pt, uint64 va);
+
 // Make a direct-map page table for the kernel.
 pagetable_t
 kvmmake(void)
@@ -298,17 +300,15 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 
 // Given a parent process's page table, copy
 // its memory into a child's page table.
-// Copies both the page table and the
-// physical memory.
+// Copies both the page table and use copy-on-write mechanism.
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
-  uint64 pa, i;
+  uint64 pa, i ,npa;
   uint flags;
-  char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
@@ -317,11 +317,19 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
+    // if the physics page is writable, then mantain the pte flags.
+    if(flags & PTE_W){
+      flags |= PTE_COW | PTE_PW;
+      flags &= (~PTE_W);
+      *pte = PAFLAGS2PTE(pa,flags);
+    }
+    // if not writable, keep the flags unchanged.
+
+    // ref the physis page.
+    npa = (uint64)kgetpage((void*)pa);
+    if(npa != pa)
       goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    if(mappages(new, i, PGSIZE, npa, flags) != 0){
       goto err;
     }
   }
@@ -352,12 +360,20 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
-
+  pte_t* pte0;
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    pa0 = walkaddr(pagetable, va0);
-    if(pa0 == 0)
+    pte0 = walk(pagetable,va0,0);
+    uint64 flags = PTE_FLAGS(*pte0);
+    if(pte0 == 0 || ((flags & PTE_V) ==0) || ((flags & PTE_U) == 0))
       return -1;
+    if(((flags & PTE_W) == 0) && docow(pagetable,va0) != 0){
+      return -1;
+    }
+    pa0 = PTE2PA(*pte0);
+    if (pa0 == 0){
+      return -1;
+    }
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -463,3 +479,26 @@ void do_vmprint(pagetable_t pt,int depth){
     }
   }
 }
+// locate the pte of va, do page allocation and remapping if needed.
+// return 0 if successed, 1 otherwise.
+int docow(pagetable_t pt, uint64 va){
+  pte_t* pte = walk(pt,va,0);
+  if(pte == 0){
+    return -1;
+  }
+  uint64 flags = PTE_FLAGS(*pte);
+  uint64 pa = PTE2PA(*pte);
+  if((flags & PTE_V) == 0 ||(flags & PTE_U) == 0){
+    return -1;
+  }
+  if((flags & PTE_COW) && ((flags & PTE_W) ==0) && (flags & PTE_PW)){
+      void* mem = kalloc();
+      memmove(mem,(void*)pa,PGSIZE);
+      kfree((void*)pa);
+      flags = (flags & (~PTE_COW) & (~PTE_PW)) | PTE_W;
+      *pte = PAFLAGS2PTE(mem,flags);
+      return 0;
+  }
+  return -1;
+}
+

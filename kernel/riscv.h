@@ -353,11 +353,15 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // user can access
 #define PTE_A (1L << 6) // access flag set but a TLB miss
+#define PTE_COW (1L << 8) // copy-on-write page flag
+#define PTE_PW (1L << 9) // copy-on-write prev write flag
 
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
 
 #define PTE2PA(pte) (((pte) >> 10) << 12)
+
+#define PAFLAGS2PTE(pa,flags) ((PA2PTE(pa)) | ((flags) & 0x3FF))
 
 #define PTE_FLAGS(pte) ((pte) & 0x3FF)
 

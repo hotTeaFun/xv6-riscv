@@ -16,6 +16,8 @@ void kernelvec();
 
 extern int devintr();
 
+extern int docow(pagetable_t, uint64);
+
 void trapinit(void) { initlock(&tickslock, "time"); }
 
 // set up to take exceptions and traps while in the kernel.
@@ -56,12 +58,21 @@ void usertrap(void) {
   } else {
     which_dev = devintr();
     if (which_dev == 2) {
-      // timer interuptalarmtrapframe
+      // timer interupt alarmtrapframe
       if (p->totticks > 0 && --p->ticks == 0) {
         memmove(alarmtrapframe, p->trapframe, 512);
         p->trapframe->epc = p->alarmhandler;
       }
-    } else if (which_dev != 0) {
+    } else if(which_dev == 4) {
+      uint64 addr = r_stval();
+      if(docow(p->pagetable,addr)){
+        printf("docow failed(addr: %p)\n",addr);
+        setkilled(p);
+      }
+    }
+    else if (which_dev != 0){
+      // ok
+    } else {
       printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
       printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
       setkilled(p);
@@ -157,6 +168,8 @@ void clockintr() {
 // and handle it.
 // returns 2 if timer interrupt,
 // 1 if other device,
+// 4 if page store fault,
+// 3 if page load  fault,
 // 0 if not recognized.
 int devintr() {
   uint64 scause = r_scause();
@@ -195,6 +208,14 @@ int devintr() {
 
     return 2;
   } else {
+    uint64 ecode = scause & 0xFF;
+    // 13: Load page fault
+    // 15: Store/AMO page fault
+    if(ecode == 13){
+        return 3;
+    }else if(ecode == 15){
+      return 4;
+    }
     return 0;
   }
 }
