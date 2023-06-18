@@ -41,3 +41,4 @@ entry("trace");
 entry("pgaccess");
 entry("sigalarm");
 entry("sigreturn");
+entry("connect");

@@ -2,6 +2,9 @@
 struct spinlock {
   uint locked;       // Is the lock held?
 
+  int nts;
+  int n;
+
   // For debugging:
   char *name;        // Name of lock.
   struct cpu *cpu;   // The cpu holding the lock.

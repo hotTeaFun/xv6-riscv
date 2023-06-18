@@ -29,6 +29,7 @@ int ugetpid(void);
 int pgaccess(void*,int,uint64*);
 int sigalarm(int,void(*)());
 int sigreturn(void);
+int connect(uint32, uint16, uint16);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

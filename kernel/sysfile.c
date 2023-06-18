@@ -18,6 +18,8 @@
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
+extern int
+sockalloc(struct file **f, uint32 raddr, uint16 lport, uint16 rport);
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
@@ -502,4 +504,30 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+uint64
+sys_connect(void)
+{
+  struct file *f;
+  int fd;
+  uint32 raddr;
+  uint32 rport;
+  uint32 lport;
+  argint(0, (int*)&raddr);
+  argint(1, (int*)&lport);
+  argint(2, (int*)&rport);
+  if (raddr < 0 ||
+      lport < 0 ||
+      rport < 0) {
+    return -1;
+  }
+
+  if(sockalloc(&f, raddr, lport, rport) < 0)
+    return -1;
+  if((fd=fdalloc(f)) < 0){
+    fileclose(f);
+    return -1;
+  }
+
+  return fd;
 }

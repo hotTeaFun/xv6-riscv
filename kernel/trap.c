@@ -44,7 +44,7 @@ void usertrap(void) {
   if (r_scause() == 8) {
     // system call
 
-    if (killed(p)) exit(-1);
+    if (lockfree_read4(&p->killed)) exit(-1);
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
@@ -78,7 +78,7 @@ void usertrap(void) {
       setkilled(p);
     }
   }
-  if (killed(p)) exit(-1);
+  if (lockfree_read4(&p->killed)) exit(-1);
 
   // give up the CPU if this is a timer interrupt.
   if (which_dev == 2) yield();
@@ -184,7 +184,10 @@ int devintr() {
       uartintr();
     } else if (irq == VIRTIO0_IRQ) {
       virtio_disk_intr();
-    } else if (irq) {
+    } else if(irq == E1000_IRQ){
+      e1000_intr();
+    }
+    else if (irq) {
       printf("unexpected interrupt irq=%d\n", irq);
     }
 
