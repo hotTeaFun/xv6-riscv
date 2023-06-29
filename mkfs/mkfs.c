@@ -256,7 +256,8 @@ iappend(uint inum, void *xp, int n)
   uint fbn, off, n1;
   struct dinode din;
   char buf[BSIZE];
-  uint indirect[NINDIRECT];
+  uint indirect[NINDIRECT][NUMINDIRECT];
+  uint dindirect[NDINDIRECT][NUMINDIRECT];
   uint x;
 
   rinode(inum, &din);
@@ -270,16 +271,38 @@ iappend(uint inum, void *xp, int n)
         din.addrs[fbn] = xint(freeblock++);
       }
       x = xint(din.addrs[fbn]);
-    } else {
-      if(xint(din.addrs[NDIRECT]) == 0){
-        din.addrs[NDIRECT] = xint(freeblock++);
+    } else if(fbn<NDIRECT+NINDIRECT*NUMINDIRECT){
+      uint idx=NDIRECT+(fbn-NDIRECT)/NUMINDIRECT;
+      uint idxl0=idx-NDIRECT;
+      uint idxl1=(fbn-NDIRECT)%NUMINDIRECT;
+      if(xint(din.addrs[idx]) == 0){
+        din.addrs[idx] = xint(freeblock++);
       }
-      rsect(xint(din.addrs[NDIRECT]), (char*)indirect);
-      if(indirect[fbn - NDIRECT] == 0){
-        indirect[fbn - NDIRECT] = xint(freeblock++);
-        wsect(xint(din.addrs[NDIRECT]), (char*)indirect);
+      rsect(xint(din.addrs[idx]), (char*)indirect[idxl0]);
+      if(indirect[idxl0][idxl1] == 0){
+        indirect[idxl0][idxl1] = xint(freeblock++);
+        wsect(xint(din.addrs[idx]), (char*)indirect[idxl0]);
       }
-      x = xint(indirect[fbn-NDIRECT]);
+      x = xint(indirect[idxl0][idxl1]);
+    }else {
+      uint idx=fbn-NDIRECT-NINDIRECT*NUMINDIRECT;
+      uint idxl0=idx/NUMDINDIRECT;
+      uint idxl1=(idx%NUMDINDIRECT)/NUMINDIRECT;
+      uint idxl2=(idx%NUMDINDIRECT)%NUMINDIRECT;
+      if(xint(din.addrs[NDIRECT+NINDIRECT+idxl0]) == 0){
+        din.addrs[NDIRECT+NINDIRECT+idxl0] = xint(freeblock++);
+      }
+      rsect(xint(din.addrs[NDIRECT+NINDIRECT+idxl0]), (char*)dindirect[idxl0]);
+      if(dindirect[idxl0][idxl1] == 0){
+        dindirect[idxl0][idxl1] = xint(freeblock++);
+        wsect(xint(din.addrs[NDIRECT+NINDIRECT+idxl0]), (char*)dindirect[idxl0]);
+      }
+      rsect(xint(dindirect[idxl0][idxl1]),(char*)indirect[0]);
+      if(indirect[0][idxl2]==0){
+        indirect[0][idxl2]=xint(freeblock++);
+        wsect(xint(dindirect[idxl0][idxl1]),(char*)indirect[0]);
+      }
+      x = xint(indirect[0][idxl2]);
     }
     n1 = min(n, (fbn + 1) * BSIZE - off);
     rsect(x, buf);

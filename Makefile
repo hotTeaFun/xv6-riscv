@@ -155,6 +155,7 @@ UPROGS=\
 	$U/_cowtest\
 	$U/_nettests\
 	$U/_uthread\
+	$U/_bigfile\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)
