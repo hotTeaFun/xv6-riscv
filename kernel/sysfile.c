@@ -52,7 +52,36 @@ fdalloc(struct file *f)
   }
   return -1;
 }
-
+struct inode* getip(char *path,uint depth ,int omode)
+{
+    // reached the max symbolic recursive depth
+    if(depth > SYMLINK_MAX_DEPTH)	
+    {
+       return 0;
+    }
+    struct inode *ip;
+    // file not exist
+    if((ip = namei(path)) == 0){
+      return 0;
+    }
+    ilock(ip);
+    if(! (omode & O_NOFOLLOW ) && ip->type==T_SYMLINK ){	    
+       //path reference to a symbolic link and O_NOFOLLOW flag is not set 
+       //recursively follow the symbolic link until a non-link file is reached
+       char next[MAXPATH];
+       // uint *poff;
+       // printf("read\n");
+       if(readi(ip,0,(uint64)next,ip->size-MAXPATH ,MAXPATH) == 0 ) 
+       {
+	       iunlock(ip);
+	       return 0;
+       }
+       iunlock(ip);
+       return  getip(next, depth+1 ,omode);
+    }
+    iunlock(ip);
+    return ip;
+}
 uint64
 sys_dup(void)
 {
@@ -325,7 +354,7 @@ sys_open(void)
       return -1;
     }
   } else {
-    if((ip = namei(path)) == 0){
+    if((ip = getip(path,0,omode)) == 0){
       end_op();
       return -1;
     }
@@ -370,6 +399,57 @@ sys_open(void)
   end_op();
 
   return fd;
+}
+
+uint64 sys_symlink(void){
+  char name[DIRSIZ], target[MAXPATH], path[MAXPATH];
+  struct inode *dp, *ip;
+  if(argstr(0,target,MAXPATH) <0 || argstr(1,path,MAXPATH)<0)
+  {
+    return -1;
+  }
+  begin_op();
+  //target does not need to exist for the system call
+  // just store it in path inode's data block
+  if((ip=namei(target)) != 0 && ip->type!=T_DIR ) // it's ok if target doesn's exist
+  {
+    //if ip exist,increase nlink	   
+    ilock(ip);
+    ip->nlink++;
+    iupdate(ip);
+    iunlockput(ip);
+  }
+  if((dp = namei(path)) ==0 )
+  {
+    if((dp=nameiparent(path,name))==0)
+    {	      
+      printf("NO inode corresponding to path's parent\n");	   
+      goto bad;  
+    }	 
+    else
+    {
+      if((dp=create(path,T_SYMLINK,0,0))==0)// last two arguments are for T_DEVICE only
+      {
+        printf("create symlink for (%s->%s) fail!\n",path,target);		 
+        goto bad;
+      }
+      else
+      {
+        iunlock(dp);
+      }
+    }
+  }
+  ilock(dp);
+  //store target in the end of directory dp's data block 
+  writei(dp,0,(uint64)target,dp->size,MAXPATH);
+  dp->type=T_SYMLINK;
+  iunlockput(dp);
+  end_op();
+  return 0;
+
+  bad:
+    end_op();
+    return -1;
 }
 
 uint64

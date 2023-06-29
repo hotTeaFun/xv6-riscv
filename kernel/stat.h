@@ -3,6 +3,7 @@
 #define T_DEVICE  3   // Device
 #define T_SYMLINK 4   //Symbolic link
 
+#define SYMLINK_MAX_DEPTH 10
 struct stat {
   int dev;     // File system's disk device
   uint ino;    // Inode number

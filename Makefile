@@ -157,6 +157,7 @@ UPROGS=\
 	$U/_uthread\
 	$U/_bigfile\
 	$U/_filetest\
+	$U/_symlinktest\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)

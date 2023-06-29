@@ -67,6 +67,9 @@ ls(char *path)
       printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
     }
     break;
+    case T_SYMLINK:
+      printf("symbol link file\n");
+      break;
   }
   close(fd);
 }
