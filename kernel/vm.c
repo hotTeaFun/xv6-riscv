@@ -489,6 +489,35 @@ void do_vmprint(pagetable_t pt,int depth){
     }
   }
 }
+int used_by_mmap(struct VMA* vma, uint64 va){
+  for(uint i=0;i<MAXVMA;i++){
+	  struct VMA *v=&vma[i];     
+    if(v->used && va>=v->addr && va<v->addr+v->len)//find corresponding vma
+    {
+      // lazy allocation		 
+	    char * mem;
+	    if((mem = (char*)kalloc())==0) goto a;
+      memset(mem,0,PGSIZE);
+      va=PGROUNDDOWN(va);
+	    uint64 off=v->start_point+va-v->addr;// starting point + extra offset
+
+	    // PROT_READ=1 PROT_WRITE=2 PROT_EXEC=4
+	    // PTE_R=2     PTE_W=4      PTE_X=8
+	    // 所以需要将vma[i]->prot 左移一位
+	    if(mappages(p->pagetable,va,PGSIZE,(uint64)mem,(v->prot<<1) |PTE_U  )!=0)
+	    {
+	       kfree(mem);
+	       goto a;
+	    }
+            // read 4096 bytes of relevant file into allocated page
+	    ilock(v->f->ip);
+	    readi(v->f->ip,1,va,off,PGSIZE);
+	    iunlock(v->f->ip);
+	    lazy=1;
+	    break;
+	 }
+  }
+}
 // locate the pte of va, do page allocation and remapping if needed.
 // return 0 if successed, 1 otherwise.
 int docow(pagetable_t pt, uint64 va){

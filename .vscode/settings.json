@@ -10,6 +10,8 @@
         "riscv.h": "c",
         "fs.h": "c",
         "bitset.h": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "file.h": "c",
+        "elf.h": "c"
     }
 }

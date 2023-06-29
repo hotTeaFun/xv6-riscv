@@ -31,6 +31,8 @@ int pgaccess(void*,int,uint64*);
 int sigalarm(int,void(*)());
 int sigreturn(void);
 int connect(uint32, uint16, uint16);
+void* mmap(void* addr,int length,int prot , int flags , int fd ,uint offset);
+int munmap(void *addr,int length);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

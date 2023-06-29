@@ -10,6 +10,18 @@ struct stat;
 struct superblock;
 struct mbuf;
 struct sock;
+#define MAXVMA 16
+
+struct VMA
+{
+   int used;   // if this vma is used or 	
+   uint64 addr;//address
+   uint64 len; //length
+   int prot;   //permissions 
+   int flags;  // flags
+   struct file *f; //the file being mapped
+   uint64 start_point;//starting piont in the file at which to map	 
+};
 struct usyscall {
   int pid;
 };
