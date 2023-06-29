@@ -9,10 +9,48 @@
             "program": "${workspaceFolder}/kernel/kernel",
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
-            "miDebuggerServerAddress": "27.0.0.1:26021", //见.gdbinit 中 target remote xxxx:xx
+            "miDebuggerServerAddress": "127.0.0.1:26021", //见.gdbinit 中 target remote xxxx:xx
             "miDebuggerPath": "/usr/bin/gdb-multiarch", // which gdb-multiarch
             "MIMode": "gdb",
             "preLaunchTask": "xv6build"
+        },
+        {
+            "name": "mkfs debug",
+            "type": "cppdbg",
+            "cwd": "${workspaceFolder}",
+            "request": "launch",
+            "program": "${workspaceFolder}/mkfs/mkfs",
+            "args": [
+                "fs.img",
+                "README",
+                "user/_cat",
+                "user/_echo",
+                "user/_forktest",
+                "user/_grep",
+                "user/_init",
+                "user/_kill",
+                "user/_ln",
+                "user/_ls",
+                "user/_mkdir",
+                "user/_rm",
+                "user/_sh",
+                "user/_stressfs",
+                "user/_usertests",
+                "user/_grind",
+                "user/_wc",
+                "user/_sysinfo",
+                "user/_sbrktest",
+                "user/_usyscalltest",
+                "user/_trace",
+                "user/_pgatest",
+                "user/_bttest",
+                "user/_alarmtest",
+                "user/_cowtest",
+                "user/_nettests",
+                "user/_uthread",
+                "user/_bigfile",
+                "user/_zombie"
+            ]
         }
     ]
 }

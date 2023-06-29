@@ -124,8 +124,13 @@ fileread(struct file *f, uint64 addr, int n)
     r = devsw[f->major].read(1, addr, n);
   } else if(f->type == FD_INODE){
     ilock(f->ip);
-    if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
+    if((r = readi(f->ip, 1, addr, f->off, n)) > 0){
       f->off += r;
+    }
+    else{
+      iunlock(f->ip);
+      return r;
+    }
     iunlock(f->ip);
   } else if(f->type == FD_SOCK){
     r = sockread(f->sock, addr, n);

@@ -93,9 +93,10 @@ kvminithart()
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
+  // if(va >= MAXVA)
+  //   panic("walk");
   if(va >= MAXVA)
-    panic("walk");
-
+    return 0;
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
     if(*pte & PTE_V) {
@@ -370,8 +371,11 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
     pte0 = walk(pagetable,va0,0);
+    if(pte0 == 0){
+      return -1;
+    }
     uint64 flags = PTE_FLAGS(*pte0);
-    if(pte0 == 0 || ((flags & PTE_V) ==0) || ((flags & PTE_U) == 0))
+    if(((flags & PTE_V) ==0) || ((flags & PTE_U) == 0))
       return -1;
     if(((flags & PTE_W) == 0) && docow(pagetable,va0) != 0){
       return -1;
