@@ -5,7 +5,8 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-
+#include "proc.h"
+#include "fcntl.h"
 /*
  * the kernel's page table.
  */
@@ -324,7 +325,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    // if the physics page is writable, then mantain the pte flags.
+    // if the physics page is writable, then maintain the pte flags.
     if(flags & PTE_W){
       flags |= PTE_COW | PTE_PW;
       flags &= (~PTE_W);
@@ -489,38 +490,62 @@ void do_vmprint(pagetable_t pt,int depth){
     }
   }
 }
-int used_by_mmap(struct VMA* vma, uint64 va){
+
+int get_vma_idx(struct VMA* vma, uint64 va){
   for(uint i=0;i<MAXVMA;i++){
 	  struct VMA *v=&vma[i];     
-    if(v->used && va>=v->addr && va<v->addr+v->len)//find corresponding vma
-    {
+    if(v->used && va>=v->addr && va<v->addr+v->len){ //find corresponding vma
       // lazy allocation		 
-	    char * mem;
-	    if((mem = (char*)kalloc())==0) goto a;
-      memset(mem,0,PGSIZE);
-      va=PGROUNDDOWN(va);
-	    uint64 off=v->start_point+va-v->addr;// starting point + extra offset
+	    // char * mem;
+	    // if((mem = (char*)kalloc())==0) goto a;
+      // memset(mem,0,PGSIZE);
+      // va=PGROUNDDOWN(va);
+	    // uint64 off=v->start_point+va-v->addr;// starting point + extra offset
 
-	    // PROT_READ=1 PROT_WRITE=2 PROT_EXEC=4
-	    // PTE_R=2     PTE_W=4      PTE_X=8
-	    // 所以需要将vma[i]->prot 左移一位
-	    if(mappages(p->pagetable,va,PGSIZE,(uint64)mem,(v->prot<<1) |PTE_U  )!=0)
-	    {
-	       kfree(mem);
-	       goto a;
-	    }
-            // read 4096 bytes of relevant file into allocated page
-	    ilock(v->f->ip);
-	    readi(v->f->ip,1,va,off,PGSIZE);
-	    iunlock(v->f->ip);
-	    lazy=1;
-	    break;
+	    // // PROT_READ=1 PROT_WRITE=2 PROT_EXEC=4
+	    // // PTE_R=2     PTE_W=4      PTE_X=8
+	    // // 所以需要将vma[i]->prot 左移一位
+	    // if(mappages(p->pagetable,va,PGSIZE,(uint64)mem,(v->prot<<1) |PTE_U  )!=0)
+	    // {
+	    //    kfree(mem);
+	    //    goto a;
+	    // }
+      //       // read 4096 bytes of relevant file into allocated page
+	    // ilock(v->f->ip);
+	    // readi(v->f->ip,1,va,off,PGSIZE);
+	    // iunlock(v->f->ip);
+	    // lazy=1;
+	    // break;
+      return i;
 	 }
   }
+  return -1;
+}
+// fault_flag == 1 when page store fault ,0 when page load fault
+// return:
+// -1 when va not belong to any vma
+// 0 when successed
+// 1 when permission denied or other error
+int do_lazymmap(struct proc* p,uint64 va,int fault_flag){
+  int idx;
+  if((idx=get_vma_idx(p->vma,va))<0){
+    return -1;
+  }
+  struct VMA* vma=&p->vma[idx];
+  if((fault_flag&&(vma->flags&PROT_WRITE))||(!fault_flag&&(vma->flags&PROT_READ))){
+    pte_t* pte=walk(p->pagetable,va,1);
+    if(pte==0){
+      return 1;
+    }
+    
+    return 0;
+  }
+  return 1;
 }
 // locate the pte of va, do page allocation and remapping if needed.
-// return 0 if successed, 1 otherwise.
+// return 0 if successed, -1 otherwise.
 int docow(pagetable_t pt, uint64 va){
+  
   pte_t* pte = walk(pt,va,0);
   if(pte == 0){
     return -1;

@@ -1,3 +1,5 @@
+# include "spinlock.h"
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -77,6 +79,19 @@ struct trapframe {
   /* 264 */ uint64 t4;
   /* 272 */ uint64 t5;
   /* 280 */ uint64 t6;
+};
+
+#define MAXVMA 16
+
+struct VMA
+{
+   int used;   // if this vma is used or 	
+   uint64 addr;//address
+   uint64 len; //length
+   int prot;   //permissions 
+   int flags;  // flags
+   struct file *f; //the file being mapped
+   uint64 start_point;//starting piont in the file at which to map	 
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };

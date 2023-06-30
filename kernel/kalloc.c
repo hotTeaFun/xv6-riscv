@@ -64,8 +64,7 @@ void* kgetpage(void* pa) {
   return addr;
 }
 // 1. decrease ref counter of the page of physical memory pointed at by pa,
-// which normally should have been returned by a
-// call to kalloc().
+// which normally should have been returned by a call to kalloc().
 // 2. free the page if no refs.
 void kfree(void* pa) {
   int idx = kpgindex(pa);

@@ -17,6 +17,7 @@ void kernelvec();
 extern int devintr();
 
 extern int docow(pagetable_t, uint64);
+extern int do_lazymmap(struct proc* p,uint64 va,int fault_flag);
 
 void trapinit(void) { initlock(&tickslock, "time"); }
 
@@ -63,8 +64,9 @@ void usertrap(void) {
         memmove(alarmtrapframe, p->trapframe, 512);
         p->trapframe->epc = p->alarmhandler;
       }
-    } else if(which_dev == 4) {
+    } else if(which_dev == 4 || which_dev == 3) {
       uint64 addr = r_stval();
+      if()
       if(docow(p->pagetable,addr)){
         printf("docow failed(addr: %p)\n",addr);
         setkilled(p);
