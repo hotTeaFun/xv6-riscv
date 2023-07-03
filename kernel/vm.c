@@ -19,7 +19,7 @@ extern char trampoline[]; // trampoline.S
 
 int docow(pagetable_t pt, uint64 va);
 
-int get_vma_idx(struct VMA* vma, uint64 va);
+struct VMA* get_vma(struct VMA* vma, uint64 va);
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -189,9 +189,12 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
   if((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+    // There's no way that walk fails
     if((pte=walk(pagetable, a, 0)) == 0){
       panic("uvmunmap: walk error");
     }
+    // It's OK when pte points to 0 which means munmap free the target memory,
+    // So we just skip this entry.
     if(PTE_FLAGS(*pte) == 0){
       continue;
     }
@@ -330,7 +333,7 @@ uvmcopy(pagetable_t old, struct VMA*vma, pagetable_t new, uint64 sz)
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0){
-      if(get_vma_idx(vma,i)>=0){
+      if(get_vma(vma,i)){
         pte_t* npte=walk(new,i,1);
         if(npte==0){
           panic("uvmcopy: walk error");
@@ -395,7 +398,7 @@ copyout(pagetable_t pt, struct VMA* vma, uint64 dstva, char *src, uint64 len)
     uint64 flags = PTE_FLAGS(*pte0);
     if(((flags & PTE_V) ==0) || ((flags & PTE_U) == 0))
       return -1;
-    if((get_vma_idx(vma,va0))>=0){
+    if(get_vma(vma,va0)){
       if((flags & PTE_R)==0){
         return -1;
       }
@@ -512,48 +515,27 @@ void do_vmprint(pagetable_t pt,int depth){
     }
   }
 }
-
-int get_vma_idx(struct VMA* vma, uint64 va){
+// find the corrosponding vma which va.
+// return 0 if not found.
+struct VMA* get_vma(struct VMA* vma, uint64 va){
   for(uint i=0;i<MAXVMA;i++){
 	  struct VMA *v=&vma[i];     
     if(v->used && va>=v->addr && va<v->addr+v->len){ //find corresponding vma
-      // lazy allocation		 
-	    // char * mem;
-	    // if((mem = (char*)kalloc())==0) goto a;
-      // memset(mem,0,PGSIZE);
-      // va=PGROUNDDOWN(va);
-	    // uint64 off=v->start_point+va-v->addr;// starting point + extra offset
-
-	    // // PROT_READ=1 PROT_WRITE=2 PROT_EXEC=4
-	    // // PTE_R=2     PTE_W=4      PTE_X=8
-	    // // 所以需要将vma[i]->prot 左移一位
-	    // if(mappages(p->pagetable,va,PGSIZE,(uint64)mem,(v->prot<<1) |PTE_U  )!=0)
-	    // {
-	    //    kfree(mem);
-	    //    goto a;
-	    // }
-      //       // read 4096 bytes of relevant file into allocated page
-	    // ilock(v->f->ip);
-	    // readi(v->f->ip,1,va,off,PGSIZE);
-	    // iunlock(v->f->ip);
-	    // lazy=1;
-	    // break;
-      return i;
+      return v;
 	 }
   }
-  return -1;
+  return 0;
 }
-// fault_flag == 1 when page store fault ,0 when page load fault
+// fault_flag == 1 when page store fault ,0 when page load fault.
 // return:
-// -1 when va not belong to any vma
-// 0 when successed
-// 1 when permission denied or other error
+// -1 when va not belong to any vma,
+// 0 when successed,
+// 1 when permission denied or other error.
 int do_lazymmap(struct proc* p,uint64 va,int fault_flag){
-  int idx;
-  if((idx=get_vma_idx(p->vma,va))<0){
+  struct VMA* vma;
+  if((vma=get_vma(p->vma,va))==0){
     return -1;
   }
-  struct VMA* vma=&p->vma[idx];
   if((fault_flag&&(vma->prot&PROT_WRITE))||(!fault_flag&&(vma->prot&PROT_READ))){
     pte_t* pte=walk(p->pagetable,va,1);
     if(pte==0){
