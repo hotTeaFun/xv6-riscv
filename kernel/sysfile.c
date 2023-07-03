@@ -546,7 +546,9 @@ uint64 sys_mmap(void) {
   argint(1, &len);
   argint(2, &prot);
   argint(3, &flags);
-  argfd(4, &fd, &f);
+  if(argfd(4, &fd, &f)){
+    return -1;
+  }
   if (len < 0 || prot < 0 || flags < 0 || fd < 0) return -1;
 
   // if file is read-only,but map it as writable.return fail
