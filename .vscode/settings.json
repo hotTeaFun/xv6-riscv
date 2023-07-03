@@ -12,6 +12,7 @@
         "bitset.h": "c",
         "cstdlib": "c",
         "file.h": "c",
-        "elf.h": "c"
+        "elf.h": "c",
+        "sleeplock.h": "c"
     }
 }

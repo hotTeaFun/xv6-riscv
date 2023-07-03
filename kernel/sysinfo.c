@@ -15,7 +15,7 @@ uint64 sys_sysinfo(void){
   }
   uint64 addr;
   argaddr(0, &addr);
-  if(copyout(p->pagetable, addr, (char*)&info,sizeof(info)) < 0){
+  if(copyout(p->pagetable,p->vma, addr, (char*)&info,sizeof(info)) < 0){
     return -1;
   }
   return 0;

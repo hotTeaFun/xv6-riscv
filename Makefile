@@ -158,6 +158,7 @@ UPROGS=\
 	$U/_bigfile\
 	$U/_filetest\
 	$U/_symlinktest\
+	$U/_mmaptest\
 	$U/_zombie\
 
 fs.img: mkfs/mkfs README $(UPROGS)

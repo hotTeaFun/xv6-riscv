@@ -7,6 +7,7 @@
 #include "fs.h"
 #include "proc.h"
 #include "fcntl.h"
+#include "file.h"
 /*
  * the kernel's page table.
  */
@@ -17,6 +18,8 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
 
 int docow(pagetable_t pt, uint64 va);
+
+int get_vma_idx(struct VMA* vma, uint64 va);
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -185,16 +188,21 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 
   if((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
-
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-    if((pte = walk(pagetable, a, 0)) == 0)
-      panic("uvmunmap: walk");
-    if((*pte & PTE_V) == 0)
-      panic("uvmunmap: not mapped");
-    if(PTE_FLAGS(*pte) == PTE_V)
+    if((pte=walk(pagetable, a, 0)) == 0){
+      panic("uvmunmap: walk error");
+    }
+    if(PTE_FLAGS(*pte) == 0){
+      continue;
+    }
+    if(PTE_FLAGS(*pte) == PTE_V){
       panic("uvmunmap: not a leaf");
+    }
+    if(((*pte)&PTE_V)==0){
+      panic("uvmunmap: not present");
+    }
+    uint64 pa = PTE2PA(*pte);
     if(do_free){
-      uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
     }
     *pte = 0;
@@ -312,7 +320,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
 int
-uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+uvmcopy(pagetable_t old, struct VMA*vma, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i ,npa;
@@ -321,8 +329,17 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
-    if((*pte & PTE_V) == 0)
+    if((*pte & PTE_V) == 0){
+      if(get_vma_idx(vma,i)>=0){
+        pte_t* npte=walk(new,i,1);
+        if(npte==0){
+          panic("uvmcopy: walk error");
+        }
+        *npte=*pte;
+        continue;
+      }
       panic("uvmcopy: page not present");
+    }
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
     // if the physics page is writable, then maintain the pte flags.
@@ -365,20 +382,25 @@ uvmclear(pagetable_t pagetable, uint64 va)
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
 int
-copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
+copyout(pagetable_t pt, struct VMA* vma, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
   pte_t* pte0;
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    pte0 = walk(pagetable,va0,0);
+    pte0 = walk(pt,va0,0);
     if(pte0 == 0){
       return -1;
     }
     uint64 flags = PTE_FLAGS(*pte0);
     if(((flags & PTE_V) ==0) || ((flags & PTE_U) == 0))
       return -1;
-    if(((flags & PTE_W) == 0) && docow(pagetable,va0) != 0){
+    if((get_vma_idx(vma,va0))>=0){
+      if((flags & PTE_R)==0){
+        return -1;
+      }
+    }
+    else if(((flags & PTE_W) == 0) && docow(pt,va0) != 0){
       return -1;
     }
     pa0 = PTE2PA(*pte0);
@@ -532,12 +554,22 @@ int do_lazymmap(struct proc* p,uint64 va,int fault_flag){
     return -1;
   }
   struct VMA* vma=&p->vma[idx];
-  if((fault_flag&&(vma->flags&PROT_WRITE))||(!fault_flag&&(vma->flags&PROT_READ))){
+  if((fault_flag&&(vma->prot&PROT_WRITE))||(!fault_flag&&(vma->prot&PROT_READ))){
     pte_t* pte=walk(p->pagetable,va,1);
     if(pte==0){
       return 1;
     }
-    
+    void* mem=kalloc();
+    if(mem==0){
+      return 1;
+    }
+    memset(mem,0,PGSIZE);
+    va=PGROUNDDOWN(va);
+    uint64 off=vma->start_point+va-vma->addr;
+    *pte=PAFLAGS2PTE(mem, vma->prot<<1|PTE_V|PTE_U);
+    ilock(vma->f->ip);
+    readi(vma->f->ip,1,va,off,PGSIZE);
+    iunlock(vma->f->ip);
     return 0;
   }
   return 1;

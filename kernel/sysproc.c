@@ -131,7 +131,7 @@ uint64 sys_pgaccess(void) {
   memset(buf, 0, sizeof(buf));
   do_pageaccess(pagetable, addr, num, buf);
   int len = BYTEROUNDUP(num) >> 3;
-  if (copyout(pagetable, dest, (char*)buf, len) < 0) {
+  if (copyout(p->pagetable,p->vma, dest, (char*)buf, len) < 0) {
     return -1;
   }
   return 0;

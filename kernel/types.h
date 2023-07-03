@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _TYPES_H_
+#define _TYPES_H_
 typedef unsigned int   uint;
 typedef unsigned short ushort;
 typedef unsigned char  uchar;
@@ -16,7 +17,7 @@ struct sysinfo
     uint64 nproc;
     uint64 freemem;
 };
-
+#endif
 
 
 

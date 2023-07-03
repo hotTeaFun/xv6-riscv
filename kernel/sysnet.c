@@ -130,7 +130,7 @@ sockread(struct sock *si, uint64 addr, int n)
   len = m->len;
   if (len > n)
     len = n;
-  if (copyout(pr->pagetable, addr, m->head, len) == -1) {
+  if (copyout(pr->pagetable,pr->vma, addr, m->head, len) == -1) {
     mbuffree(m);
     return -1;
   }

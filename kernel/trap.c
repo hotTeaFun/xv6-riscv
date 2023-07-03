@@ -66,8 +66,13 @@ void usertrap(void) {
       }
     } else if(which_dev == 4 || which_dev == 3) {
       uint64 addr = r_stval();
-      if()
-      if(docow(p->pagetable,addr)){
+      int ret = do_lazymmap(p,addr,which_dev==4?1:0);
+      if(ret==1){
+        printf("do lazymmap failed(addr: %p)\n",addr);
+        setkilled(p);
+      }else if(ret==0){
+      }
+      else if(docow(p->pagetable,addr)){
         printf("docow failed(addr: %p)\n",addr);
         setkilled(p);
       }

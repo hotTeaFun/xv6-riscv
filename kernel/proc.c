@@ -317,7 +317,7 @@ int fork(void) {
   }
 
   // Copy user memory from parent to child.
-  if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
+  if (uvmcopy(p->pagetable, p->vma, np->pagetable, p->sz) < 0) {
     freeproc(np);
     release(&np->lock);
     return -1;
@@ -440,7 +440,7 @@ int wait(uint64 addr) {
         if (pp->state == ZOMBIE) {
           // Found one.
           pid = pp->pid;
-          if (addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
+          if (addr != 0 && copyout(p->pagetable,p->vma, addr, (char *)&pp->xstate,
                                    sizeof(pp->xstate)) < 0) {
             release(&pp->lock);
             release(&wait_lock);
@@ -638,7 +638,7 @@ int killed(struct proc *p) {
 int either_copyout(int user_dst, uint64 dst, void *src, uint64 len) {
   struct proc *p = myproc();
   if (user_dst) {
-    return copyout(p->pagetable, dst, src, len);
+    return copyout(p->pagetable,p->vma, dst, src, len);
   } else {
     memmove((char *)dst, src, len);
     return 0;
